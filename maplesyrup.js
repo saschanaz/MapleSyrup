@@ -38,32 +38,16 @@ var MapleSyrup;
                 channelsAsTokens[i].splice(index, 0, change[1]);
             }
         }
-        // let tempoRegex = /t[0-9]+/;
-        // let tempoChannelIndex = -1;
-        // let tempoText: string;
-        // for (let i = 0; i < channels.length; i++) {
-        //     let match = channels[i].match(tempoRegex);
-        //     if (match) {
-        //         tempoChannelIndex = i;
-        //         tempoText = match[0];
-        //         break;
-        //     }
-        // }
-        // if (tempoChannelIndex !== -1) {
-        //     for (let i = 0; i < channels.length; i++) {
-        //         if (i !== tempoChannelIndex) {
-        //             channels[i] = tempoText + channels[i];
-        //         }
-        //     }
-        // }
-        // TODO: synchronize tempo change
         return channelsAsTokens.map(writeChannel);
     }
     MapleSyrup.convertAsArray = convertAsArray;
     function findTimeIndex(time, timeMap) {
         for (let i = 0; i < timeMap.length; i++) {
             let mapped = timeMap[i];
-            if (mapped >= time) {
+            if (mapped === time) {
+                return i + 1;
+            }
+            else if (mapped > time) {
                 return i;
             }
         }

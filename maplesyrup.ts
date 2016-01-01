@@ -49,8 +49,11 @@ namespace MapleSyrup {
     function findTimeIndex(time: number, timeMap: number[]) {
         for (let i = 0; i < timeMap.length; i++) {
             let mapped = timeMap[i];
-            if (mapped >= time) {
-                return i; 
+            if (mapped === time) {
+                return i + 1; 
+            }
+            else if (mapped > time) {
+                return i;
             }
         }
         return timeMap.length;
