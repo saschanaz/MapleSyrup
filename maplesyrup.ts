@@ -1,3 +1,4 @@
+"use strict";
 namespace MapleSyrup {
     export function convert(mml: string) {
         let array = convertAsArray(mml);
@@ -33,6 +34,7 @@ namespace MapleSyrup {
                 }
             }
         }
+        // TODO: synchronize tempo change
 
         return channels.map(channel => convertChannel(channel));
     }

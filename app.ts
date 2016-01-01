@@ -1,3 +1,4 @@
+"use strict";
 declare var text: HTMLTextAreaElement;
 declare var result: HTMLTextAreaElement;
 

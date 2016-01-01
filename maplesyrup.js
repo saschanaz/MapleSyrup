@@ -1,3 +1,4 @@
+"use strict";
 var MapleSyrup;
 (function (MapleSyrup) {
     function convert(mml) {
@@ -33,6 +34,7 @@ var MapleSyrup;
                 }
             }
         }
+        // TODO: synchronize tempo change
         return channels.map(channel => convertChannel(channel));
     }
     MapleSyrup.convertAsArray = convertAsArray;
