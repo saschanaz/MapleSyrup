@@ -16,32 +16,89 @@ namespace MapleSyrup {
         let commaDelimited = mml.slice(4, -1);
         let channels = commaDelimited.split(',').map(channel => channel.toLowerCase());
 
-        let tempoRegex = /t[0-9]+/;
-        let tempoChannelIndex = -1;
-        let tempoText: string;
+        let channelsAsTokens = channels.map(parseChannel);
+        
+        let tempoChangesByTime: [number, Token][] = [];
+        
+        for (let channelAsTokens of channelsAsTokens) {
+            replaceAbsoluteNotes(channelAsTokens);
+        }
+        let timeIndexMapsForChannels = channelsAsTokens.map(mapTime);
+        
         for (let i = 0; i < channels.length; i++) {
-            let match = channels[i].match(tempoRegex);
-            if (match) {
-                tempoChannelIndex = i;
-                tempoText = match[0];
-                break;
+            let channelAsTokens = channelsAsTokens[i];
+            let timeIndexMap = timeIndexMapsForChannels[i];
+            let tempoTokenIndices = searchTempoTokenIndices(channelAsTokens);
+            for (let index of tempoTokenIndices) {
+                tempoChangesByTime.push([timeIndexMap[index], channelAsTokens[index]]);
             }
         }
-        if (tempoChannelIndex !== -1) {
+        tempoChangesByTime.sort((a, b) => b[0] - a[0]); // make it reversed
+        
+        for (let change of tempoChangesByTime) {
             for (let i = 0; i < channels.length; i++) {
-                if (i !== tempoChannelIndex) {
-                    channels[i] = tempoText + channels[i];
-                }
+                let timeIndexMap = timeIndexMapsForChannels[i];
+                let index = findTimeIndex(change[0], timeIndexMap);
+                channelsAsTokens[i].splice(index, 0, change[1]);
             }
         }
-        // TODO: synchronize tempo change
 
-        return channels.map(channel => convertChannel(channel));
+        return channelsAsTokens.map(writeChannel);
     }
     
-    export function convertChannel(mmlChannel: string) {
-        let tokens = parseChannel(mmlChannel);
+    function findTimeIndex(time: number, timeMap: number[]) {
+        for (let i = 0; i < timeMap.length; i++) {
+            let mapped = timeMap[i];
+            if (mapped >= time) {
+                return i; 
+            }
+        }
+        return timeMap.length;
+    }
 
+    function mapTime(tokens: Token[]) {
+        /*
+        Time:
+        r64 -> 2
+        r64. -> 3
+        r32 -> 4
+        ...
+        r4 -> 32
+        */
+        let map: number[] = [];
+        let elapsed = 0;
+        let defaultLength = 128 / 4; // 32
+        for (let token of tokens) {
+            if (token.type === "note") {
+                let length = Number.isNaN(token.value) ? defaultLength : (128 / token.value);
+                if ((token as NoteToken).dot) {
+                    length *= 1.5;
+                }
+                elapsed += length;
+            }
+            else if (token.type === "defaultlength") {
+                let length = 128 / token.value;
+                if ((token as LengthToken).dot) {
+                    length *= 1.5;
+                }
+                defaultLength = length;
+            }
+            map.push(elapsed);
+        }
+        return map;
+    }
+    
+    function searchTempoTokenIndices(tokens: Token[]) {
+        let indices: number[] = [];
+        for (let i = 0; i < tokens.length; i++) {
+            if (tokens[i].type === "tempo") {
+                indices.push(i);
+            }
+        }
+        return indices;
+    }
+
+    function replaceAbsoluteNotes(tokens: Token[]) {
         let octave = 4;
         for (let i = 0; i < tokens.length; i++) {
             let token = tokens[i];
@@ -62,8 +119,6 @@ namespace MapleSyrup {
                 i += newTokens.length - 1;
             }
         }
-
-        return writeChannel(tokens);
     }
 
     let numberNotes: string[] = ['c', 'c+', 'd', 'd+', 'e', 'f', 'f+', 'g', 'g+', 'a', 'a+', 'b'];
@@ -102,7 +157,7 @@ namespace MapleSyrup {
                     results.push(`t${token.value}`);
                     break;
                 case "defaultlength":
-                    results.push(`l${token.value}${(token as LengthToken).dot ? ".": ""}`);
+                    results.push(`l${token.value}${(token as LengthToken).dot ? "." : ""}`);
                     break;
                 case "volume":
                     results.push(`v${token.value}`);
