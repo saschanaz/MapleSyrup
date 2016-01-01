@@ -1,0 +1,16 @@
+﻿body
+{
+    font-family: 'Segoe UI', sans-serif
+}
+
+span {
+    font-style: italic
+}
+
+.main {
+     display: flex;
+     flex-direction: column
+}
+.flexone {
+    flex: 1
+}
