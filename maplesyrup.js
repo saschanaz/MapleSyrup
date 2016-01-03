@@ -20,6 +20,7 @@ var MapleSyrup;
         let tempoChangesByTime = [];
         for (let channelAsTokens of channelsAsTokens) {
             replaceAbsoluteNotes(channelAsTokens);
+            replaceDottedDefaultLength(channelAsTokens);
         }
         let timeIndexMapsForChannels = channelsAsTokens.map(mapTime);
         for (let i = 0; i < channels.length; i++) {
@@ -109,6 +110,30 @@ var MapleSyrup;
                 //console.log(newTokens);
                 tokens.splice(i, 1, ...newTokens);
                 i += newTokens.length - 1;
+            }
+        }
+    }
+    function replaceDottedDefaultLength(tokens) {
+        let defaultLengthDot = false;
+        for (let i = 0; i < tokens.length; i++) {
+            let token = tokens[i];
+            if (token.type === "defaultlength") {
+                let defaultLengthToken = token;
+                defaultLengthDot = defaultLengthToken.dot;
+                defaultLengthToken.dot = false;
+                console.log(`dotted L command: ${defaultLengthToken.value}`);
+            }
+            else if (token.type === "note") {
+                if (defaultLengthDot) {
+                    let noteToken = token;
+                    if (Number.isNaN(noteToken.value)) {
+                        if (noteToken.dot) {
+                            throw new Error("Unexpected dotted note when default length already has a dot.");
+                        }
+                        noteToken.dot = true;
+                    }
+                    console.log(`added a dot: ${noteToken.note}`);
+                }
             }
         }
     }

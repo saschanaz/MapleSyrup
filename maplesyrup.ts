@@ -17,14 +17,15 @@ namespace MapleSyrup {
         let channels = commaDelimited.split(',').map(channel => channel.toLowerCase());
 
         let channelsAsTokens = channels.map(parseChannel);
-        
+
         let tempoChangesByTime: [number, Token][] = [];
-        
+
         for (let channelAsTokens of channelsAsTokens) {
             replaceAbsoluteNotes(channelAsTokens);
+            replaceDottedDefaultLength(channelAsTokens);
         }
         let timeIndexMapsForChannels = channelsAsTokens.map(mapTime);
-        
+
         for (let i = 0; i < channels.length; i++) {
             let channelAsTokens = channelsAsTokens[i];
             let timeIndexMap = timeIndexMapsForChannels[i];
@@ -45,12 +46,12 @@ namespace MapleSyrup {
 
         return channelsAsTokens.map(writeChannel);
     }
-    
+
     function findTimeIndex(time: number, timeMap: number[]) {
         for (let i = 0; i < timeMap.length; i++) {
             let mapped = timeMap[i];
             if (mapped === time) {
-                return i + 1; 
+                return i + 1;
             }
             else if (mapped > time) {
                 return i;
@@ -90,7 +91,7 @@ namespace MapleSyrup {
         }
         return map;
     }
-    
+
     function searchTempoTokenIndices(tokens: Token[]) {
         let indices: number[] = [];
         for (let i = 0; i < tokens.length; i++) {
@@ -120,6 +121,31 @@ namespace MapleSyrup {
                 //console.log(newTokens);
                 tokens.splice(i, 1, ...newTokens);
                 i += newTokens.length - 1;
+            }
+        }
+    }
+    function replaceDottedDefaultLength(tokens: Token[]) {
+        let defaultLengthDot = false;
+        for (let i = 0; i < tokens.length; i++) {
+            let token = tokens[i];
+
+            if (token.type === "defaultlength") {
+                let defaultLengthToken = token as LengthToken;
+                defaultLengthDot = defaultLengthToken.dot;
+                defaultLengthToken.dot = false;
+                console.log(`dotted L command: ${defaultLengthToken.value}`);
+            }
+            else if (token.type === "note") {
+                if (defaultLengthDot) {
+                    let noteToken = token as NoteToken;
+                    if (Number.isNaN(noteToken.value)) {
+                        if (noteToken.dot) {
+                            throw new Error("Unexpected dotted note when default length already has a dot.")
+                        }
+                        noteToken.dot = true;
+                    }
+                    console.log(`added a dot: ${noteToken.note}`);
+                }
             }
         }
     }
