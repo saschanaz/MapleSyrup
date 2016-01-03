@@ -7,15 +7,13 @@ var MapleSyrup;
     }
     MapleSyrup.convert = convert;
     function convertAsArray(mml) {
-        if (!mml.startsWith("MML@")) {
-            throw new Error("Expected 'MML@' start marker but not found");
+        let channels;
+        if (typeof mml === "string") {
+            channels = extractChannelsFromMMLContainer(mml.toLowerCase());
         }
-        if (!mml.endsWith(";")) {
-            throw new Error("Expected ';' end marker but not found");
+        else if (typeof mml === "array") {
+            channels = mml.map(channel => channel.toLowerCase());
         }
-        let commaRegex = /,/g;
-        let commaDelimited = mml.slice(4, -1);
-        let channels = commaDelimited.split(',').map(channel => channel.toLowerCase());
         let channelsAsTokens = channels.map(parseChannel);
         let tempoChangesByTime = [];
         for (let channelAsTokens of channelsAsTokens) {
@@ -42,6 +40,17 @@ var MapleSyrup;
         return channelsAsTokens.map(writeChannel);
     }
     MapleSyrup.convertAsArray = convertAsArray;
+    function extractChannelsFromMMLContainer(mml) {
+        if (!mml.startsWith("mml@")) {
+            throw new Error("Expected 'MML@' start marker but not found");
+        }
+        if (!mml.endsWith(";")) {
+            throw new Error("Expected ';' end marker but not found");
+        }
+        let commaRegex = /,/g;
+        let commaDelimited = mml.slice(4, -1);
+        return commaDelimited.split(',');
+    }
     function findTimeIndex(time, timeMap) {
         for (let i = 0; i < timeMap.length; i++) {
             let mapped = timeMap[i];

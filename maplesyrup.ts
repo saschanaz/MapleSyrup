@@ -1,20 +1,17 @@
 "use strict";
 namespace MapleSyrup {
-    export function convert(mml: string) {
+    export function convert(mml: string | string[]) {
         let array = convertAsArray(mml);
         return `MML@${array.join(',')};`
     }
-    export function convertAsArray(mml: string) {
-        if (!mml.startsWith("MML@")) {
-            throw new Error("Expected 'MML@' start marker but not found");
+    export function convertAsArray(mml: string | string[]) {
+        let channels: string[];
+        if (typeof mml === "string") {
+            channels = extractChannelsFromMMLContainer(mml.toLowerCase());
         }
-        if (!mml.endsWith(";")) {
-            throw new Error("Expected ';' end marker but not found");
+        else if (typeof mml === "array") {
+            channels = mml.map(channel => channel.toLowerCase());
         }
-
-        let commaRegex = /,/g;
-        let commaDelimited = mml.slice(4, -1);
-        let channels = commaDelimited.split(',').map(channel => channel.toLowerCase());
 
         let channelsAsTokens = channels.map(parseChannel);
 
@@ -45,6 +42,18 @@ namespace MapleSyrup {
         }
 
         return channelsAsTokens.map(writeChannel);
+    }
+    function extractChannelsFromMMLContainer(mml: string) {
+        if (!mml.startsWith("mml@")) {
+            throw new Error("Expected 'MML@' start marker but not found");
+        }
+        if (!mml.endsWith(";")) {
+            throw new Error("Expected ';' end marker but not found");
+        }
+
+        let commaRegex = /,/g;
+        let commaDelimited = mml.slice(4, -1);
+        return commaDelimited.split(',');
     }
 
     function findTimeIndex(time: number, timeMap: number[]) {
