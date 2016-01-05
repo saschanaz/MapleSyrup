@@ -14,3 +14,13 @@ span {
 .flexone {
     flex: 1
 }
+
+dialog {
+    max-width: 300px;
+    max-height: 100%;
+    box-sizing: border-box;
+    overflow: auto;
+}
+.center {
+    text-align: center;
+}

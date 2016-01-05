@@ -307,7 +307,7 @@ var MapleSyrup;
                     token.dot = parser.readIf('.');
                     break;
                 default:
-                    throw new Error(`Unexpected token: ${char}`);
+                    throw new Error(`Unexpected token '${char}', position ${parser.position}.`);
             }
             tokens.push(token);
         }
