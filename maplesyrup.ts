@@ -37,7 +37,43 @@ namespace MapleSyrup {
             for (let i = 0; i < channels.length; i++) {
                 let timeIndexMap = timeIndexMapsForChannels[i];
                 let index = findTimeIndex(change[0], timeIndexMap);
-                channelsAsTokens[i].splice(index, 0, change[1]);
+                
+                if (index === timeIndexMap.length) {
+                    continue;
+                }
+                else if (index > timeIndexMap.length) {
+                    throw new Error("Assert failure: out of index");
+                }
+                
+                if (change[0] < timeIndexMap[index - 1]) {
+                    throw new Error("Assert failure: incorrect time map index")
+                }
+                
+                // Detect unbreakable note (Issue #2)
+                if (index > 0 && change[0] > timeIndexMap[index - 1]) {                    
+                    let timeGap = timeIndexMap[index] - change[0];
+                    if (Math.log2(timeGap) % 1 !== 0) {
+                        throw new Error(`Complex time gap is detected: ${timeGap}`);
+                    }
+
+                    let noteToken = channelsAsTokens[i][index] as NoteToken;
+                    let length = Number.isNaN(noteToken.value) ? getDefaultLengthByIndex(channelsAsTokens[i], index) : (128 / noteToken.value)
+                    if (noteToken.dot) {
+                        length *= 1.5;
+                    }
+                    let brokenNoteLength = length - timeGap;
+                    if (Math.log2(brokenNoteLength) % 1 !== 0) {
+                        throw new Error(`Complex time gap is detected: ${timeGap}`);
+                    }
+
+                    let brokenNote: NoteToken = { type: "note", value: 128 / brokenNoteLength, note: noteToken.note, dot: false, postfix: noteToken.postfix };
+                    let tie: Token = { type: "tie", value: undefined }; 
+                    let gapNote: NoteToken = { type: "note", value: 128 / timeGap, note: noteToken.note, dot: false, postfix: noteToken.postfix };
+                    channelsAsTokens[i].splice(index, 1, brokenNote, tie, change[1], gapNote);
+                }
+                else {
+                    channelsAsTokens[i].splice(index, 0, change[1]);
+                }
             }
         }
 
@@ -67,6 +103,22 @@ namespace MapleSyrup {
             }
         }
         return timeMap.length;
+    }
+
+    function getDefaultLengthByIndex(tokens: Token[], index: number) {
+        if (index >= tokens.length) {
+            throw new Error("Index cannot be greater than or equal to token length.")
+        }
+        let defaultLength: number;
+        for (let i = 0; i < index; i++) {
+            if (tokens[i].type === "defaultlength") {
+                defaultLength = 128 / (tokens[i] as LengthToken).value;
+                if ((tokens[i] as LengthToken).dot) {
+                    defaultLength *= 1.5;
+                }
+            }
+        }
+        return defaultLength;
     }
 
     function mapTime(tokens: Token[]) {
