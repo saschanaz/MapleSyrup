@@ -194,7 +194,7 @@ namespace MapleSyrup {
                 let defaultLengthToken = token as LengthToken;
                 defaultLengthDot = defaultLengthToken.dot;
                 defaultLengthToken.dot = false;
-                console.log(`dotted L command: ${defaultLengthToken.value}`);
+                //console.log(`dotted L command: ${defaultLengthToken.value}`);
             }
             else if (token.type === "note") {
                 if (defaultLengthDot) {
@@ -205,7 +205,7 @@ namespace MapleSyrup {
                         }
                         noteToken.dot = true;
                     }
-                    console.log(`added a dot: ${noteToken.note}`);
+                    //console.log(`added a dot: ${noteToken.note}`);
                 }
             }
         }
