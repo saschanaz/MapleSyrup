@@ -148,6 +148,11 @@ namespace MapleSyrup {
                 }
                 defaultLength = length;
             }
+            if ((elapsed - elapsed | 0) < 1e-12) {
+                // (Assuming we won't ever treat any notes this small)
+                // Cleanup tiny remainder caused by adding fractions in floating point
+                elapsed |= 0;
+            }
             map.push(elapsed);
         }
         return map;
