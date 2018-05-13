@@ -1,10 +1,4 @@
 "use strict";
-interface HTMLDialogElement extends HTMLElement {
-    open: boolean;
-    close(): void;
-    showModal(): void;
-    returnValue: any;
-}
 declare namespace dialogPolyfill {
     function registerDialog(dialog: HTMLDialogElement): void;
 }

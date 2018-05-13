@@ -9,7 +9,7 @@ namespace MapleSyrup {
         if (typeof mml === "string") {
             channels = extractChannelsFromMMLContainer(mml.toLowerCase());
         }
-        else if (typeof mml === "array") {
+        else if (Array.isArray(mml)) {
             channels = mml.map(channel => channel.toLowerCase());
         }
 
@@ -328,7 +328,6 @@ namespace MapleSyrup {
                         value: assertValidNumber(parser.readContinuousNumbers(2))
                     } as LengthToken;
                     (token as NoteToken).dot = parser.readIf('.')
-                    break;
                     break;
                 case 'v':
                     token = {
