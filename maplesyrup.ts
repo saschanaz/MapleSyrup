@@ -52,9 +52,6 @@ namespace MapleSyrup {
                 // Detect unbreakable note (Issue #2)
                 if (index > 0 && change[0] > timeIndexMap[index - 1]) {                    
                     const timeGap = timeIndexMap[index] - change[0];
-                    if (Math.log2(timeGap) % 1 !== 0) {
-                        throw new Error(`Complex time gap is detected: ${timeGap}`);
-                    }
 
                     const noteToken = channelsAsTokens[i][index] as NoteToken;
                     let length = Number.isNaN(noteToken.value) ? getDefaultLengthByIndex(channelsAsTokens[i], index) : (128 / noteToken.value)
@@ -62,14 +59,11 @@ namespace MapleSyrup {
                         length *= 1.5;
                     }
                     const brokenNoteLength = length - timeGap;
-                    if (Math.log2(brokenNoteLength) % 1 !== 0) {
-                        throw new Error(`Complex time gap is detected: ${timeGap}`);
-                    }
 
-                    const brokenNote: NoteToken = { type: "note", value: 128 / brokenNoteLength, note: noteToken.note, dot: false, postfix: noteToken.postfix };
-                    const tie: Token = { type: "tie", value: undefined }; 
-                    const gapNote: NoteToken = { type: "note", value: 128 / timeGap, note: noteToken.note, dot: false, postfix: noteToken.postfix };
-                    channelsAsTokens[i].splice(index, 1, brokenNote, tie, change[1], gapNote);
+                    const brokenNote = createTiedNotes(noteToken, brokenNoteLength);
+                    const tie: Token = { type: "tie", value: undefined };
+                    const gapNote = createTiedNotes(noteToken, timeGap);
+                    channelsAsTokens[i].splice(index, 1, ...brokenNote, tie, change[1], ...gapNote);
                 }
                 else {
                     channelsAsTokens[i].splice(index, 0, change[1]);
@@ -79,6 +73,29 @@ namespace MapleSyrup {
 
         return channelsAsTokens.map(writeChannel);
     }
+
+    /**
+     * Create (multiple) notes that can be played for the specified arbitrary integer length
+     * @param noteToken base token
+     * @param length r64 is 2
+     */
+    function createTiedNotes(noteToken: NoteToken, length: number) {
+        if (length !== (length | 0)) {
+            throw new Error("The input length is not integer");
+        }
+        const notes: Token[] = [];
+        while (length > 0) {
+            const largest2 = 2 ** (Math.log2(length) | 0);
+            length -= largest2;
+            const note: NoteToken = { type: "note", value: 128 / largest2, note: noteToken.note, dot: false, postfix: noteToken.postfix };
+            notes.push(note);
+            if (length > 0) {
+                notes.push({ type: "tie", value: undefined });
+            }
+        }
+        return notes;
+    }
+
     function extractChannelsFromMMLContainer(mml: string) {
         if (!mml.startsWith("mml@")) {
             throw new Error("Expected 'MML@' start marker but not found");
