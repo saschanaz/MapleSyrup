@@ -1,7 +1,7 @@
 "use strict";
 namespace MapleSyrup {
     export function convert(mml: string | string[]) {
-        let array = convertAsArray(mml);
+        const array = convertAsArray(mml);
         return `MML@${array.join(',')};`
     }
     export function convertAsArray(mml: string | string[]) {
@@ -13,30 +13,30 @@ namespace MapleSyrup {
             channels = mml.map(channel => channel.toLowerCase());
         }
 
-        let channelsAsTokens = channels.map(parseChannel);
+        const channelsAsTokens = channels.map(parseChannel);
 
-        let tempoChangesByTime: [number, Token][] = [];
+        const tempoChangesByTime: [number, Token][] = [];
 
-        for (let channelAsTokens of channelsAsTokens) {
+        for (const channelAsTokens of channelsAsTokens) {
             replaceAbsoluteNotes(channelAsTokens);
             replaceDottedDefaultLength(channelAsTokens);
         }
-        let timeIndexMapsForChannels = channelsAsTokens.map(mapTime);
+        const timeIndexMapsForChannels = channelsAsTokens.map(mapTime);
 
         for (let i = 0; i < channels.length; i++) {
-            let channelAsTokens = channelsAsTokens[i];
-            let timeIndexMap = timeIndexMapsForChannels[i];
-            let tempoTokenIndices = searchTempoTokenIndices(channelAsTokens);
-            for (let index of tempoTokenIndices) {
+            const channelAsTokens = channelsAsTokens[i];
+            const timeIndexMap = timeIndexMapsForChannels[i];
+            const tempoTokenIndices = searchTempoTokenIndices(channelAsTokens);
+            for (const index of tempoTokenIndices) {
                 tempoChangesByTime.push([timeIndexMap[index], channelAsTokens[index]]);
             }
         }
         tempoChangesByTime.sort((a, b) => b[0] - a[0]); // make it reversed
         
-        for (let change of tempoChangesByTime) {
+        for (const change of tempoChangesByTime) {
             for (let i = 0; i < channels.length; i++) {
-                let timeIndexMap = timeIndexMapsForChannels[i];
-                let index = findTimeIndex(change[0], timeIndexMap);
+                const timeIndexMap = timeIndexMapsForChannels[i];
+                const index = findTimeIndex(change[0], timeIndexMap);
                 
                 if (index === timeIndexMap.length) {
                     continue;
@@ -51,24 +51,24 @@ namespace MapleSyrup {
                 
                 // Detect unbreakable note (Issue #2)
                 if (index > 0 && change[0] > timeIndexMap[index - 1]) {                    
-                    let timeGap = timeIndexMap[index] - change[0];
+                    const timeGap = timeIndexMap[index] - change[0];
                     if (Math.log2(timeGap) % 1 !== 0) {
                         throw new Error(`Complex time gap is detected: ${timeGap}`);
                     }
 
-                    let noteToken = channelsAsTokens[i][index] as NoteToken;
+                    const noteToken = channelsAsTokens[i][index] as NoteToken;
                     let length = Number.isNaN(noteToken.value) ? getDefaultLengthByIndex(channelsAsTokens[i], index) : (128 / noteToken.value)
                     if (noteToken.dot) {
                         length *= 1.5;
                     }
-                    let brokenNoteLength = length - timeGap;
+                    const brokenNoteLength = length - timeGap;
                     if (Math.log2(brokenNoteLength) % 1 !== 0) {
                         throw new Error(`Complex time gap is detected: ${timeGap}`);
                     }
 
-                    let brokenNote: NoteToken = { type: "note", value: 128 / brokenNoteLength, note: noteToken.note, dot: false, postfix: noteToken.postfix };
-                    let tie: Token = { type: "tie", value: undefined }; 
-                    let gapNote: NoteToken = { type: "note", value: 128 / timeGap, note: noteToken.note, dot: false, postfix: noteToken.postfix };
+                    const brokenNote: NoteToken = { type: "note", value: 128 / brokenNoteLength, note: noteToken.note, dot: false, postfix: noteToken.postfix };
+                    const tie: Token = { type: "tie", value: undefined }; 
+                    const gapNote: NoteToken = { type: "note", value: 128 / timeGap, note: noteToken.note, dot: false, postfix: noteToken.postfix };
                     channelsAsTokens[i].splice(index, 1, brokenNote, tie, change[1], gapNote);
                 }
                 else {
@@ -87,14 +87,14 @@ namespace MapleSyrup {
             throw new Error("Expected ';' end marker but not found");
         }
 
-        let commaRegex = /,/g;
-        let commaDelimited = mml.slice(4, -1);
+        const commaRegex = /,/g;
+        const commaDelimited = mml.slice(4, -1);
         return commaDelimited.split(',');
     }
 
     function findTimeIndex(time: number, timeMap: number[]) {
         for (let i = 0; i < timeMap.length; i++) {
-            let mapped = timeMap[i];
+            const mapped = timeMap[i];
             if (mapped === time) {
                 return i + 1;
             }
@@ -130,10 +130,10 @@ namespace MapleSyrup {
         ...
         r4 -> 32
         */
-        let map: number[] = [];
+        const map: number[] = [];
         let elapsed = 0;
         let defaultLength = 128 / 4; // 32
-        for (let token of tokens) {
+        for (const token of tokens) {
             if (token.type === "note") {
                 let length = Number.isNaN(token.value) ? defaultLength : (128 / token.value);
                 if ((token as NoteToken).dot) {
@@ -159,7 +159,7 @@ namespace MapleSyrup {
     }
 
     function searchTempoTokenIndices(tokens: Token[]) {
-        let indices: number[] = [];
+        const indices: number[] = [];
         for (let i = 0; i < tokens.length; i++) {
             if (tokens[i].type === "tempo") {
                 indices.push(i);
@@ -171,7 +171,7 @@ namespace MapleSyrup {
     function replaceAbsoluteNotes(tokens: Token[]) {
         let octave = 4;
         for (let i = 0; i < tokens.length; i++) {
-            let token = tokens[i];
+            const token = tokens[i];
 
             if (token.type === "octave") {
                 octave = token.value;
@@ -183,7 +183,7 @@ namespace MapleSyrup {
             }
             else if (token.type === "absolutenote") {
                 //console.log(`absolute: ${token.value}, current octave: ${octave}`)
-                let newTokens = absoluteToNormalNote(token, octave);
+                const newTokens = absoluteToNormalNote(token, octave);
                 //console.log(newTokens);
                 tokens.splice(i, 1, ...newTokens);
                 i += newTokens.length - 1;
@@ -193,17 +193,17 @@ namespace MapleSyrup {
     function replaceDottedDefaultLength(tokens: Token[]) {
         let defaultLengthDot = false;
         for (let i = 0; i < tokens.length; i++) {
-            let token = tokens[i];
+            const token = tokens[i];
 
             if (token.type === "defaultlength") {
-                let defaultLengthToken = token as LengthToken;
+                const defaultLengthToken = token as LengthToken;
                 defaultLengthDot = defaultLengthToken.dot;
                 defaultLengthToken.dot = false;
                 //console.log(`dotted L command: ${defaultLengthToken.value}`);
             }
             else if (token.type === "note") {
                 if (defaultLengthDot) {
-                    let noteToken = token as NoteToken;
+                    const noteToken = token as NoteToken;
                     if (Number.isNaN(noteToken.value)) {
                         if (noteToken.dot) {
                             throw new Error("Unexpected dotted note when default length already has a dot.")
@@ -216,18 +216,18 @@ namespace MapleSyrup {
         }
     }
 
-    let numberNotes: string[] = ['c', 'c+', 'd', 'd+', 'e', 'f', 'f+', 'g', 'g+', 'a', 'a+', 'b'];
+    const numberNotes: string[] = ['c', 'c+', 'd', 'd+', 'e', 'f', 'f+', 'g', 'g+', 'a', 'a+', 'b'];
     function absoluteToNormalNote(token: Token, currentOctave: number) {
-        let newTokens: Token[] = [];
+        const newTokens: Token[] = [];
 
-        let relative = token.value % 12;
-        let noteOctave = Math.floor(token.value / 12);
+        const relative = token.value % 12;
+        const noteOctave = Math.floor(token.value / 12);
         if (noteOctave !== currentOctave) {
             newTokens.push({ type: "octave", value: noteOctave })
         }
 
-        let note = numberNotes[relative];
-        let noteToken: NoteToken = {
+        const note = numberNotes[relative];
+        const noteToken: NoteToken = {
             type: "note",
             value: NaN, // follow default note length 
             note: note.slice(0, 1),
@@ -244,9 +244,9 @@ namespace MapleSyrup {
     }
 
     function writeChannel(tokens: Token[]) {
-        let results: string[] = [];
+        const results: string[] = [];
 
-        for (let token of tokens) {
+        for (const token of tokens) {
             switch (token.type) {
                 case "tempo":
                     results.push(`t${token.value}`);
@@ -273,7 +273,7 @@ namespace MapleSyrup {
                     break;
                 case "note": {
                     let result = (token as NoteToken).note;
-                    let postfix = (token as NoteToken).postfix;
+                    const postfix = (token as NoteToken).postfix;
                     if (postfix) {
                         if (postfix === "sharp") {
                             result += "+";
@@ -315,10 +315,10 @@ namespace MapleSyrup {
         dot: boolean;
     }
     export function parseChannel(mmlChannel: string) {
-        let tokens: Token[] = [];
-        let parser = new TextParser(mmlChannel);
+        const tokens: Token[] = [];
+        const parser = new TextParser(mmlChannel);
         while (parser.remaining) {
-            let char = parser.read();
+            const char = parser.read();
             let token: Token;
             switch (char) {
                 case 't':
@@ -437,7 +437,7 @@ namespace MapleSyrup {
             if (!this.remaining) {
                 throw new Error("No more readable characters after current position.")
             }
-            let char = this._text[this._position];
+            const char = this._text[this._position];
             this.position++;
             return char;
         }
@@ -445,7 +445,7 @@ namespace MapleSyrup {
             if (!this.remaining) {
                 return false;
             }
-            let read = this.read();
+            const read = this.read();
             if (read !== target) {
                 this.unread();
                 return false;
@@ -459,9 +459,9 @@ namespace MapleSyrup {
             this.position--;
         }
         readContinuousNumbers(limit: number) {
-            let array: string[] = [];
+            const array: string[] = [];
             while (this.remaining && array.length < limit) {
-                let read = this.read();
+                const read = this.read();
                 if (TextParser.charIsNumber(read)) {
                     array.push(read);
                 }
@@ -473,20 +473,20 @@ namespace MapleSyrup {
             return parseInt(array.join(''))
         }
         static charIsNumber(char: string) {
-            let charCode = char.charCodeAt(0);
+            const charCode = char.charCodeAt(0);
             return charCode >= 0x30 /* 0 */ && charCode <= 0x39 /* 9 */
         }
     }
     // function indicesOf(text: string, regex: RegExp): number[] {
     //     // TODO: use 'y' regex flag when Chrome activates it by default
     //     // (Chrome 49 does but with an experimental flag)
-    //     let lastIndex = text.search(regex);
+    //     const lastIndex = text.search(regex);
     //     if (lastIndex === -1) {
     //         return [];
     //     }
-    //     let indices = [lastIndex];
+    //     const indices = [lastIndex];
     //     while (true) {
-    //         let localLastIndex = text.slice(lastIndex).search(regex);
+    //         const localLastIndex = text.slice(lastIndex).search(regex);
     //         if (localLastIndex === -1) {
     //             return indices;
     //         }
