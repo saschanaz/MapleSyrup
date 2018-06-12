@@ -47,7 +47,7 @@ var MapleSyrup;
                 if (index > 0 && change[0] > timeIndexMap[index - 1]) {
                     const timeGap = timeIndexMap[index] - change[0];
                     const noteToken = channelsAsTokens[i][index];
-                    let length = Number.isNaN(noteToken.value) ? getDefaultLengthByIndex(channelsAsTokens[i], index) : (128 / noteToken.value);
+                    let length = noteToken.value === undefined || Number.isNaN(noteToken.value) ? getDefaultLengthByIndex(channelsAsTokens[i], index) : (128 / noteToken.value);
                     if (noteToken.dot) {
                         length *= 1.5;
                     }
@@ -113,7 +113,7 @@ var MapleSyrup;
         if (index >= tokens.length) {
             throw new Error("Index cannot be greater than or equal to token length.");
         }
-        let defaultLength;
+        let defaultLength = 0;
         for (let i = 0; i < index; i++) {
             if (tokens[i].type === "defaultlength") {
                 defaultLength = 128 / tokens[i].value;
