@@ -2,17 +2,15 @@
 namespace MapleSyrup {
     export function convert(mml: string | string[]) {
         const array = convertAsArray(mml);
-        return `MML@${array.join(',')};`
+        return `MML@${array.join(",")};`;
     }
     export function convertAsArray(mml: string | string[]) {
         let channels: string[];
         if (typeof mml === "string") {
             channels = extractChannelsFromMMLContainer(mml.toLowerCase());
-        }
-        else if (Array.isArray(mml)) {
+        } else if (Array.isArray(mml)) {
             channels = mml.map(channel => channel.toLowerCase());
-        }
-        else {
+        } else {
             throw new Error("argument should be string or string array");
         }
 
@@ -43,13 +41,12 @@ namespace MapleSyrup {
 
                 if (index === timeIndexMap.length) {
                     continue;
-                }
-                else if (index > timeIndexMap.length) {
+                } else if (index > timeIndexMap.length) {
                     throw new Error("Assert failure: out of index");
                 }
 
                 if (change[0] < timeIndexMap[index - 1]) {
-                    throw new Error("Assert failure: incorrect time map index")
+                    throw new Error("Assert failure: incorrect time map index");
                 }
 
                 // Detect unbreakable note (Issue #2)
@@ -60,7 +57,8 @@ namespace MapleSyrup {
                     if (noteToken.type !== "note") {
                         throw new Error("Assert failure: incorrect time index");
                     }
-                    let length = Number.isNaN(noteToken.value) ? getDefaultLengthByIndex(channelsAsTokens[i], index) : (128 / noteToken.value)
+                    let length = Number.isNaN(noteToken.value) ?
+                        getDefaultLengthByIndex(channelsAsTokens[i], index) : (128 / noteToken.value);
                     if (noteToken.dot) {
                         length *= 1.5;
                     }
@@ -70,8 +68,7 @@ namespace MapleSyrup {
                     const tie: Token = { type: "tie", value: NaN };
                     const gapNote = createTiedNotes(noteToken, timeGap);
                     channelsAsTokens[i].splice(index, 1, ...brokenNote, tie, change[1], ...gapNote);
-                }
-                else {
+                } else {
                     channelsAsTokens[i].splice(index, 0, change[1]);
                 }
             }
@@ -93,7 +90,13 @@ namespace MapleSyrup {
         while (length > 0) {
             const largest2 = 2 ** (Math.log2(length) | 0);
             length -= largest2;
-            const note: NoteToken = { type: "note", value: 128 / largest2, note: noteToken.note, dot: false, postfix: noteToken.postfix };
+            const note: NoteToken = {
+                type: "note",
+                value: 128 / largest2,
+                note: noteToken.note,
+                dot: false,
+                postfix: noteToken.postfix
+            };
             notes.push(note);
             if (length > 0) {
                 notes.push({ type: "tie", value: NaN });
@@ -112,7 +115,7 @@ namespace MapleSyrup {
 
         const commaRegex = /,/g;
         const commaDelimited = mml.slice(4, -1);
-        return commaDelimited.split(',');
+        return commaDelimited.split(",");
     }
 
     function findTimeIndex(time: number, timeMap: number[]) {
@@ -120,8 +123,7 @@ namespace MapleSyrup {
             const mapped = timeMap[i];
             if (mapped === time) {
                 return i + 1;
-            }
-            else if (mapped > time) {
+            } else if (mapped > time) {
                 return i;
             }
         }
@@ -130,7 +132,7 @@ namespace MapleSyrup {
 
     function getDefaultLengthByIndex(tokens: Token[], index: number) {
         if (index >= tokens.length) {
-            throw new Error("Index cannot be greater than or equal to token length.")
+            throw new Error("Index cannot be greater than or equal to token length.");
         }
         let defaultLength = NaN;
         for (let i = 0; i < index; i++) {
@@ -163,8 +165,7 @@ namespace MapleSyrup {
                     length *= 1.5;
                 }
                 elapsed += length;
-            }
-            else if (token.type === "defaultlength") {
+            } else if (token.type === "defaultlength") {
                 let length = 128 / token.value;
                 if ((token as LengthToken).dot) {
                     length *= 1.5;
@@ -198,16 +199,14 @@ namespace MapleSyrup {
 
             if (token.type === "octave") {
                 octave = token.value;
-                //console.log(`set: ${octave}`);
-            }
-            else if (token.type === "octavemanipulation") {
+                // console.log(`set: ${octave}`);
+            } else if (token.type === "octavemanipulation") {
                 token.value ? octave++ : octave--;
-                //console.log(`manipulated: ${octave}`);
-            }
-            else if (token.type === "absolutenote") {
-                //console.log(`absolute: ${token.value}, current octave: ${octave}`)
+                // console.log(`manipulated: ${octave}`);
+            } else if (token.type === "absolutenote") {
+                // console.log(`absolute: ${token.value}, current octave: ${octave}`)
                 const newTokens = absoluteToNormalNote(token, octave);
-                //console.log(newTokens);
+                // console.log(newTokens);
                 tokens.splice(i, 1, ...newTokens);
                 i += newTokens.length - 1;
             }
@@ -215,53 +214,50 @@ namespace MapleSyrup {
     }
     function replaceDottedDefaultLength(tokens: Token[]) {
         let defaultLengthDot = false;
-        for (let i = 0; i < tokens.length; i++) {
-            const token = tokens[i];
-
+        for (const token of tokens) {
             if (token.type === "defaultlength") {
                 const defaultLengthToken = token as LengthToken;
                 defaultLengthDot = defaultLengthToken.dot;
                 defaultLengthToken.dot = false;
-                //console.log(`dotted L command: ${defaultLengthToken.value}`);
-            }
-            else if (token.type === "note") {
+                // console.log(`dotted L command: ${defaultLengthToken.value}`);
+            } else if (token.type === "note") {
                 if (defaultLengthDot) {
                     const noteToken = token as NoteToken;
                     if (Number.isNaN(noteToken.value)) {
                         if (noteToken.dot) {
-                            throw new Error("Unexpected dotted note when default length already has a dot.")
+                            throw new Error("Unexpected dotted note when default length already has a dot.");
                         }
                         noteToken.dot = true;
                     }
-                    //console.log(`added a dot: ${noteToken.note}`);
+                    // console.log(`added a dot: ${noteToken.note}`);
                 }
             }
         }
     }
 
-    const numberNotes: string[] = ['c', 'c+', 'd', 'd+', 'e', 'f', 'f+', 'g', 'g+', 'a', 'a+', 'b'];
+    const numberNotes: string[] = ["c", "c+", "d", "d+", "e", "f", "f+", "g", "g+", "a", "a+", "b"];
     function absoluteToNormalNote(token: Token, currentOctave: number) {
         const newTokens: Token[] = [];
 
         const relative = token.value % 12;
         const noteOctave = Math.floor(token.value / 12);
         if (noteOctave !== currentOctave) {
-            newTokens.push({ type: "octave", value: noteOctave })
+            newTokens.push({ type: "octave", value: noteOctave });
         }
 
         const note = numberNotes[relative];
         const noteToken: NoteToken = {
             type: "note",
-            value: NaN, // follow default note length 
+            value: NaN, // follow default note length
             note: note.slice(0, 1),
-            postfix: note.endsWith('+') ? "sharp" : null,
+            postfix: note.endsWith("+") ? "sharp" : null,
             dot: false
-        }
+        };
         newTokens.push(noteToken);
 
         if (noteOctave !== currentOctave) {
             // return to original octave
-            newTokens.push({ type: "octave", value: currentOctave })
+            newTokens.push({ type: "octave", value: currentOctave });
         }
         return newTokens;
     }
@@ -289,10 +285,10 @@ namespace MapleSyrup {
                 case "absolutenote":
                     throw new Error("Absolute note should be converted to normal note");
                 case "octavemanipulation":
-                    results.push(token.value ? '>' : '<');
+                    results.push(token.value ? ">" : "<");
                     break;
                 case "tie":
-                    results.push('&');
+                    results.push("&");
                     break;
                 case "note": {
                     let result = (token as NoteToken).note;
@@ -300,21 +296,19 @@ namespace MapleSyrup {
                     if (postfix) {
                         if (postfix === "sharp") {
                             result += "+";
-                        }
-                        else if (postfix === "flat") {
+                        } else if (postfix === "flat") {
                             result += "-";
-                        }
-                        else {
-                            throw new Error(`Unexpected note postfix: ${postfix}`)
+                        } else {
+                            throw new Error(`Unexpected note postfix: ${postfix}`);
                         }
                     }
                     if (!Number.isNaN(token.value)) {
-                        result += token.value
+                        result += token.value;
                     }
                     if ((token as NoteToken).dot) {
-                        result += '.';
+                        result += ".";
                     }
-                    results.push(result)
+                    results.push(result);
                     break;
                 }
                 default:
@@ -322,7 +316,7 @@ namespace MapleSyrup {
             }
         }
 
-        return results.join('');
+        return results.join("");
     }
 
     interface Token {
@@ -344,81 +338,80 @@ namespace MapleSyrup {
             const char = parser.read();
             let token: Token;
             switch (char) {
-                case 't':
+                case "t":
                     token = {
                         type: "tempo",
                         value: assertValidNumber(parser.readContinuousNumbers(3))
                     };
                     break;
-                case 'l':
+                case "l":
                     token = {
                         type: "defaultlength",
                         value: assertValidNumber(parser.readContinuousNumbers(2))
                     } as LengthToken;
-                    (token as NoteToken).dot = parser.readIf('.')
+                    (token as NoteToken).dot = parser.readIf(".");
                     break;
-                case 'v':
+                case "v":
                     token = {
                         type: "volume",
                         value: assertValidNumber(parser.readContinuousNumbers(2))
                     };
                     break;
-                case 's':
+                case "s":
                     token = {
                         type: "sustain",
                         value: assertValidNumber(parser.readContinuousNumbers(2))
-                    }
+                    };
                     break;
-                case 'o':
+                case "o":
                     token = {
                         type: "octave",
                         value: assertValidNumber(parser.readContinuousNumbers(1))
-                    }
+                    };
                     break;
-                case 'n':
+                case "n":
                     token = {
                         type: "absolutenote",
                         value: assertValidNumber(parser.readContinuousNumbers(2))
-                    }
+                    };
                     break;
-                case '<':
-                case '>':
+                case "<":
+                case ">":
                     token = {
                         type: "octavemanipulation",
-                        value: char === '>' ? 1 : 0
-                    }
+                        value: char === ">" ? 1 : 0
+                    };
                     break;
-                case '&':
+                case "&":
                     token = {
                         type: "tie",
                         value: NaN
-                    }
+                    };
                     break;
-                case 'a':
-                case 'b':
-                case 'c':
-                case 'd':
-                case 'e':
-                case 'f':
-                case 'g':
-                case 'r': // rest note
+                case "a":
+                case "b":
+                case "c":
+                case "d":
+                case "e":
+                case "f":
+                case "g":
+                case "r": // rest note
                     token = {
                         type: "note",
                         note: char,
                         postfix: null
                     } as NoteToken;
 
-                    if (char !== 'r') {
-                        if (parser.readIf('+') || parser.readIf('#')) {
+                    if (char !== "r") {
+                        if (parser.readIf("+") || parser.readIf("#")) {
                             (token as NoteToken).postfix = "sharp";
-                        }
-                        else if (parser.readIf('-')) {
+                        } else if (parser.readIf("-")) {
                             (token as NoteToken).postfix = "flat";
                         }
                     }
 
                     (token as NoteToken).value = parser.readContinuousNumbers(2);
-                    (token as NoteToken).dot = parser.readIf('.')
+                    (token as NoteToken).dot = parser.readIf(".");
                     break;
                 default:
                     throw new Error(`Unexpected token '${char}', position ${parser.position}.`);
@@ -429,13 +422,18 @@ namespace MapleSyrup {
 
         function assertValidNumber(input: number) {
             if (Number.isNaN(input)) {
-                throw new Error("Expected a valid number but found NaN")
+                throw new Error("Expected a valid number but found NaN");
             }
             return input;
         }
     }
 
     class TextParser {
+        static charIsNumber(char: string) {
+            const charCode = char.charCodeAt(0);
+            return charCode >= 0x30 /* 0 */ && charCode <= 0x39; /* 9 */
+        }
+
         private _text: string;
 
         private _position: number;
@@ -444,7 +442,7 @@ namespace MapleSyrup {
         }
         set position(value: number) {
             if (value > this._text.length) {
-                throw new Error("Position value should be lower than or equal to text length.")
+                throw new Error("Position value should be lower than or equal to text length.");
             }
             this._position = value;
         }
@@ -459,7 +457,7 @@ namespace MapleSyrup {
 
         read() {
             if (!this.remaining) {
-                throw new Error("No more readable characters after current position.")
+                throw new Error("No more readable characters after current position.");
             }
             const char = this._text[this._position];
             this.position++;
@@ -478,7 +476,7 @@ namespace MapleSyrup {
         }
         unread() {
             if (this._position === 0) {
-                throw new Error("Cannot unread because current position is zero.")
+                throw new Error("Cannot unread because current position is zero.");
             }
             this.position--;
         }
@@ -488,17 +486,12 @@ namespace MapleSyrup {
                 const read = this.read();
                 if (TextParser.charIsNumber(read)) {
                     array.push(read);
-                }
-                else {
+                } else {
                     this.unread();
                     break;
                 }
             }
-            return parseInt(array.join(''))
-        }
-        static charIsNumber(char: string) {
-            const charCode = char.charCodeAt(0);
-            return charCode >= 0x30 /* 0 */ && charCode <= 0x39 /* 9 */
+            return parseInt(array.join(""), 10);
         }
     }
     // function indicesOf(text: string, regex: RegExp): number[] {

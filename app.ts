@@ -10,20 +10,18 @@ declare var agreeButton: HTMLInputElement;
 
 function syrupifySingleLine() {
     try {
-        let resultText = MapleSyrup.convert(text.value.replace(/\s/g, ""));
+        const resultText = MapleSyrup.convert(text.value.replace(/\s/g, ""));
         result.textContent = resultText;
-    }
-    catch (err) {
-        alert(`오류가 발생했습니다: ${err}`)
+    } catch (err) {
+        alert(`오류가 발생했습니다: ${err}`);
     }
 }
 
 function syrupifyMultiLine() {
     try {
-    let resultTexts = MapleSyrup.convertAsArray(text.value.replace(/\s/g, ""));
-    result.textContent = resultTexts.join('\r\n\r\n');
-    }
-    catch (err) {
+    const resultTexts = MapleSyrup.convertAsArray(text.value.replace(/\s/g, ""));
+    result.textContent = resultTexts.join("\r\n\r\n");
+    } catch (err) {
         alert(`오류가 발생했습니다: ${err}`);
     }
 }
@@ -31,9 +29,9 @@ function syrupifyMultiLine() {
 document.addEventListener("DOMContentLoaded", async () => {
     agreeButton.addEventListener("click", () => {
         dialog.close();
-    })
+    });
     dialogPolyfill.registerDialog(dialog);
     dialog.showModal();
-    dialog.addEventListener("cancel", ev => ev.preventDefault())
+    dialog.addEventListener("cancel", ev => ev.preventDefault());
     await (dialog.scrollTop = 0);
-})
+});
