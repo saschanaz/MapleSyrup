@@ -14,6 +14,9 @@ var MapleSyrup;
         else if (Array.isArray(mml)) {
             channels = mml.map(channel => channel.toLowerCase());
         }
+        else {
+            throw new Error("argument should be string or string array");
+        }
         const channelsAsTokens = channels.map(parseChannel);
         const tempoChangesByTime = [];
         for (const channelAsTokens of channelsAsTokens) {
@@ -47,13 +50,16 @@ var MapleSyrup;
                 if (index > 0 && change[0] > timeIndexMap[index - 1]) {
                     const timeGap = timeIndexMap[index] - change[0];
                     const noteToken = channelsAsTokens[i][index];
+                    if (noteToken.type !== "note") {
+                        throw new Error("Assert failure: incorrect time index");
+                    }
                     let length = Number.isNaN(noteToken.value) ? getDefaultLengthByIndex(channelsAsTokens[i], index) : (128 / noteToken.value);
                     if (noteToken.dot) {
                         length *= 1.5;
                     }
                     const brokenNoteLength = length - timeGap;
                     const brokenNote = createTiedNotes(noteToken, brokenNoteLength);
-                    const tie = { type: "tie", value: undefined };
+                    const tie = { type: "tie", value: NaN };
                     const gapNote = createTiedNotes(noteToken, timeGap);
                     channelsAsTokens[i].splice(index, 1, ...brokenNote, tie, change[1], ...gapNote);
                 }
@@ -81,7 +87,7 @@ var MapleSyrup;
             const note = { type: "note", value: 128 / largest2, note: noteToken.note, dot: false, postfix: noteToken.postfix };
             notes.push(note);
             if (length > 0) {
-                notes.push({ type: "tie", value: undefined });
+                notes.push({ type: "tie", value: NaN });
             }
         }
         return notes;
@@ -113,7 +119,7 @@ var MapleSyrup;
         if (index >= tokens.length) {
             throw new Error("Index cannot be greater than or equal to token length.");
         }
-        let defaultLength;
+        let defaultLength = NaN;
         for (let i = 0; i < index; i++) {
             if (tokens[i].type === "defaultlength") {
                 defaultLength = 128 / tokens[i].value;
@@ -227,7 +233,7 @@ var MapleSyrup;
             type: "note",
             value: NaN,
             note: note.slice(0, 1),
-            postfix: note.endsWith('+') ? "sharp" : undefined,
+            postfix: note.endsWith('+') ? "sharp" : null,
             dot: false
         };
         newTokens.push(noteToken);
@@ -347,7 +353,7 @@ var MapleSyrup;
                 case '&':
                     token = {
                         type: "tie",
-                        value: undefined
+                        value: NaN
                     };
                     break;
                 case 'a':
@@ -360,7 +366,8 @@ var MapleSyrup;
                 case 'r': // rest note
                     token = {
                         type: "note",
-                        note: char
+                        note: char,
+                        postfix: null
                     };
                     if (char !== 'r') {
                         if (parser.readIf('+') || parser.readIf('#')) {

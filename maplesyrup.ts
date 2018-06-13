@@ -12,6 +12,9 @@ namespace MapleSyrup {
         else if (Array.isArray(mml)) {
             channels = mml.map(channel => channel.toLowerCase());
         }
+        else {
+            throw new Error("argument should be string or string array");
+        }
 
         const channelsAsTokens = channels.map(parseChannel);
 
@@ -32,28 +35,31 @@ namespace MapleSyrup {
             }
         }
         tempoChangesByTime.sort((a, b) => b[0] - a[0]); // make it reversed
-        
+
         for (const change of tempoChangesByTime) {
             for (let i = 0; i < channels.length; i++) {
                 const timeIndexMap = timeIndexMapsForChannels[i];
                 const index = findTimeIndex(change[0], timeIndexMap);
-                
+
                 if (index === timeIndexMap.length) {
                     continue;
                 }
                 else if (index > timeIndexMap.length) {
                     throw new Error("Assert failure: out of index");
                 }
-                
+
                 if (change[0] < timeIndexMap[index - 1]) {
                     throw new Error("Assert failure: incorrect time map index")
                 }
-                
+
                 // Detect unbreakable note (Issue #2)
-                if (index > 0 && change[0] > timeIndexMap[index - 1]) {                    
+                if (index > 0 && change[0] > timeIndexMap[index - 1]) {
                     const timeGap = timeIndexMap[index] - change[0];
 
                     const noteToken = channelsAsTokens[i][index] as NoteToken;
+                    if (noteToken.type !== "note") {
+                        throw new Error("Assert failure: incorrect time index");
+                    }
                     let length = Number.isNaN(noteToken.value) ? getDefaultLengthByIndex(channelsAsTokens[i], index) : (128 / noteToken.value)
                     if (noteToken.dot) {
                         length *= 1.5;
@@ -61,7 +67,7 @@ namespace MapleSyrup {
                     const brokenNoteLength = length - timeGap;
 
                     const brokenNote = createTiedNotes(noteToken, brokenNoteLength);
-                    const tie: Token = { type: "tie", value: undefined };
+                    const tie: Token = { type: "tie", value: NaN };
                     const gapNote = createTiedNotes(noteToken, timeGap);
                     channelsAsTokens[i].splice(index, 1, ...brokenNote, tie, change[1], ...gapNote);
                 }
@@ -90,7 +96,7 @@ namespace MapleSyrup {
             const note: NoteToken = { type: "note", value: 128 / largest2, note: noteToken.note, dot: false, postfix: noteToken.postfix };
             notes.push(note);
             if (length > 0) {
-                notes.push({ type: "tie", value: undefined });
+                notes.push({ type: "tie", value: NaN });
             }
         }
         return notes;
@@ -126,7 +132,7 @@ namespace MapleSyrup {
         if (index >= tokens.length) {
             throw new Error("Index cannot be greater than or equal to token length.")
         }
-        let defaultLength: number;
+        let defaultLength = NaN;
         for (let i = 0; i < index; i++) {
             if (tokens[i].type === "defaultlength") {
                 defaultLength = 128 / (tokens[i] as LengthToken).value;
@@ -248,7 +254,7 @@ namespace MapleSyrup {
             type: "note",
             value: NaN, // follow default note length 
             note: note.slice(0, 1),
-            postfix: note.endsWith('+') ? "sharp" : undefined,
+            postfix: note.endsWith('+') ? "sharp" : null,
             dot: false
         }
         newTokens.push(noteToken);
@@ -328,7 +334,7 @@ namespace MapleSyrup {
     }
     interface NoteToken extends LengthToken {
         note: string;
-        postfix: string;
+        postfix: string | null;
         dot: boolean;
     }
     export function parseChannel(mmlChannel: string) {
@@ -385,7 +391,7 @@ namespace MapleSyrup {
                 case '&':
                     token = {
                         type: "tie",
-                        value: undefined
+                        value: NaN
                     }
                     break;
                 case 'a':
@@ -398,7 +404,8 @@ namespace MapleSyrup {
                 case 'r': // rest note
                     token = {
                         type: "note",
-                        note: char
+                        note: char,
+                        postfix: null
                     } as NoteToken;
 
                     if (char !== 'r') {
