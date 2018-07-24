@@ -9,8 +9,7 @@
     "typescript": "^2.9.1"
   },
   "scripts": {
-    "lint": "eslint *.js",
-    "test": "npm run lint"
+    "test": "npx tslint -p ."
   },
   "repository": {
     "type": "git",
