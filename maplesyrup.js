@@ -2,8 +2,8 @@
 var MapleSyrup;
 (function (MapleSyrup) {
     function convert(mml) {
-        let array = convertAsArray(mml);
-        return `MML@${array.join(',')};`;
+        const array = convertAsArray(mml);
+        return `MML@${array.join(",")};`;
     }
     MapleSyrup.convert = convert;
     function convertAsArray(mml) {
@@ -11,29 +11,32 @@ var MapleSyrup;
         if (typeof mml === "string") {
             channels = extractChannelsFromMMLContainer(mml.toLowerCase());
         }
-        else if (typeof mml === "array") {
+        else if (Array.isArray(mml)) {
             channels = mml.map(channel => channel.toLowerCase());
         }
-        let channelsAsTokens = channels.map(parseChannel);
-        let tempoChangesByTime = [];
-        for (let channelAsTokens of channelsAsTokens) {
+        else {
+            throw new Error("argument should be string or string array");
+        }
+        const channelsAsTokens = channels.map(parseChannel);
+        const tempoChangesByTime = [];
+        for (const channelAsTokens of channelsAsTokens) {
             replaceAbsoluteNotes(channelAsTokens);
             replaceDottedDefaultLength(channelAsTokens);
         }
-        let timeIndexMapsForChannels = channelsAsTokens.map(mapTime);
+        const timeIndexMapsForChannels = channelsAsTokens.map(mapTime);
         for (let i = 0; i < channels.length; i++) {
-            let channelAsTokens = channelsAsTokens[i];
-            let timeIndexMap = timeIndexMapsForChannels[i];
-            let tempoTokenIndices = searchTempoTokenIndices(channelAsTokens);
-            for (let index of tempoTokenIndices) {
+            const channelAsTokens = channelsAsTokens[i];
+            const timeIndexMap = timeIndexMapsForChannels[i];
+            const tempoTokenIndices = searchTempoTokenIndices(channelAsTokens);
+            for (const index of tempoTokenIndices) {
                 tempoChangesByTime.push([timeIndexMap[index], channelAsTokens[index]]);
             }
         }
         tempoChangesByTime.sort((a, b) => b[0] - a[0]); // make it reversed
-        for (let change of tempoChangesByTime) {
+        for (const change of tempoChangesByTime) {
             for (let i = 0; i < channels.length; i++) {
-                let timeIndexMap = timeIndexMapsForChannels[i];
-                let index = findTimeIndex(change[0], timeIndexMap);
+                const timeIndexMap = timeIndexMapsForChannels[i];
+                const index = findTimeIndex(change[0], timeIndexMap);
                 if (index === timeIndexMap.length) {
                     continue;
                 }
@@ -45,23 +48,21 @@ var MapleSyrup;
                 }
                 // Detect unbreakable note (Issue #2)
                 if (index > 0 && change[0] > timeIndexMap[index - 1]) {
-                    let timeGap = timeIndexMap[index] - change[0];
-                    if (Math.log2(timeGap) % 1 !== 0) {
-                        throw new Error(`Complex time gap is detected: ${timeGap}`);
+                    const timeGap = timeIndexMap[index] - change[0];
+                    const noteToken = channelsAsTokens[i][index];
+                    if (noteToken.type !== "note") {
+                        throw new Error("Assert failure: incorrect time index");
                     }
-                    let noteToken = channelsAsTokens[i][index];
-                    let length = Number.isNaN(noteToken.value) ? getDefaultLengthByIndex(channelsAsTokens[i], index) : (128 / noteToken.value);
+                    let length = Number.isNaN(noteToken.value) ?
+                        getDefaultLengthByIndex(channelsAsTokens[i], index) : (128 / noteToken.value);
                     if (noteToken.dot) {
                         length *= 1.5;
                     }
-                    let brokenNoteLength = length - timeGap;
-                    if (Math.log2(brokenNoteLength) % 1 !== 0) {
-                        throw new Error(`Complex time gap is detected: ${timeGap}`);
-                    }
-                    let brokenNote = { type: "note", value: 128 / brokenNoteLength, note: noteToken.note, dot: false, postfix: noteToken.postfix };
-                    let tie = { type: "tie", value: undefined };
-                    let gapNote = { type: "note", value: 128 / timeGap, note: noteToken.note, dot: false, postfix: noteToken.postfix };
-                    channelsAsTokens[i].splice(index, 1, brokenNote, tie, change[1], gapNote);
+                    const brokenNoteLength = length - timeGap;
+                    const brokenNote = createTiedNotes(noteToken, brokenNoteLength);
+                    const tie = { type: "tie", value: NaN };
+                    const gapNote = createTiedNotes(noteToken, timeGap);
+                    channelsAsTokens[i].splice(index, 1, ...brokenNote, tie, change[1], ...gapNote);
                 }
                 else {
                     channelsAsTokens[i].splice(index, 0, change[1]);
@@ -71,6 +72,33 @@ var MapleSyrup;
         return channelsAsTokens.map(writeChannel);
     }
     MapleSyrup.convertAsArray = convertAsArray;
+    /**
+     * Create (multiple) notes that can be played for the specified arbitrary integer length
+     * @param noteToken base token
+     * @param length r64 is 2
+     */
+    function createTiedNotes(noteToken, length) {
+        if (length !== (length | 0)) {
+            throw new Error("The input length is not integer");
+        }
+        const notes = [];
+        while (length > 0) {
+            const largest2 = Math.pow(2, (Math.log2(length) | 0));
+            length -= largest2;
+            const note = {
+                type: "note",
+                value: 128 / largest2,
+                note: noteToken.note,
+                dot: false,
+                postfix: noteToken.postfix
+            };
+            notes.push(note);
+            if (length > 0) {
+                notes.push({ type: "tie", value: NaN });
+            }
+        }
+        return notes;
+    }
     function extractChannelsFromMMLContainer(mml) {
         if (!mml.startsWith("mml@")) {
             throw new Error("Expected 'MML@' start marker but not found");
@@ -78,13 +106,13 @@ var MapleSyrup;
         if (!mml.endsWith(";")) {
             throw new Error("Expected ';' end marker but not found");
         }
-        let commaRegex = /,/g;
-        let commaDelimited = mml.slice(4, -1);
-        return commaDelimited.split(',');
+        const commaRegex = /,/g;
+        const commaDelimited = mml.slice(4, -1);
+        return commaDelimited.split(",");
     }
     function findTimeIndex(time, timeMap) {
         for (let i = 0; i < timeMap.length; i++) {
-            let mapped = timeMap[i];
+            const mapped = timeMap[i];
             if (mapped === time) {
                 return i + 1;
             }
@@ -98,7 +126,7 @@ var MapleSyrup;
         if (index >= tokens.length) {
             throw new Error("Index cannot be greater than or equal to token length.");
         }
-        let defaultLength;
+        let defaultLength = NaN;
         for (let i = 0; i < index; i++) {
             if (tokens[i].type === "defaultlength") {
                 defaultLength = 128 / tokens[i].value;
@@ -118,10 +146,10 @@ var MapleSyrup;
         ...
         r4 -> 32
         */
-        let map = [];
+        const map = [];
         let elapsed = 0;
         let defaultLength = 128 / 4; // 32
-        for (let token of tokens) {
+        for (const token of tokens) {
             if (token.type === "note") {
                 let length = Number.isNaN(token.value) ? defaultLength : (128 / token.value);
                 if (token.dot) {
@@ -136,12 +164,17 @@ var MapleSyrup;
                 }
                 defaultLength = length;
             }
+            if ((elapsed - elapsed | 0) < 1e-12) {
+                // (Assuming we won't ever treat any notes this small)
+                // Cleanup tiny remainder caused by adding fractions in floating point
+                elapsed |= 0;
+            }
             map.push(elapsed);
         }
         return map;
     }
     function searchTempoTokenIndices(tokens) {
-        let indices = [];
+        const indices = [];
         for (let i = 0; i < tokens.length; i++) {
             if (tokens[i].type === "tempo") {
                 indices.push(i);
@@ -152,17 +185,19 @@ var MapleSyrup;
     function replaceAbsoluteNotes(tokens) {
         let octave = 4;
         for (let i = 0; i < tokens.length; i++) {
-            let token = tokens[i];
+            const token = tokens[i];
             if (token.type === "octave") {
                 octave = token.value;
+                // console.log(`set: ${octave}`);
             }
             else if (token.type === "octavemanipulation") {
                 token.value ? octave++ : octave--;
+                // console.log(`manipulated: ${octave}`);
             }
             else if (token.type === "absolutenote") {
-                //console.log(`absolute: ${token.value}, current octave: ${octave}`)
-                let newTokens = absoluteToNormalNote(token, octave);
-                //console.log(newTokens);
+                // console.log(`absolute: ${token.value}, current octave: ${octave}`)
+                const newTokens = absoluteToNormalNote(token, octave);
+                // console.log(newTokens);
                 tokens.splice(i, 1, ...newTokens);
                 i += newTokens.length - 1;
             }
@@ -170,42 +205,41 @@ var MapleSyrup;
     }
     function replaceDottedDefaultLength(tokens) {
         let defaultLengthDot = false;
-        for (let i = 0; i < tokens.length; i++) {
-            let token = tokens[i];
+        for (const token of tokens) {
             if (token.type === "defaultlength") {
-                let defaultLengthToken = token;
+                const defaultLengthToken = token;
                 defaultLengthDot = defaultLengthToken.dot;
                 defaultLengthToken.dot = false;
-                console.log(`dotted L command: ${defaultLengthToken.value}`);
+                // console.log(`dotted L command: ${defaultLengthToken.value}`);
             }
             else if (token.type === "note") {
                 if (defaultLengthDot) {
-                    let noteToken = token;
+                    const noteToken = token;
                     if (Number.isNaN(noteToken.value)) {
                         if (noteToken.dot) {
                             throw new Error("Unexpected dotted note when default length already has a dot.");
                         }
                         noteToken.dot = true;
                     }
-                    console.log(`added a dot: ${noteToken.note}`);
+                    // console.log(`added a dot: ${noteToken.note}`);
                 }
             }
         }
     }
-    let numberNotes = ['c', 'c+', 'd', 'd+', 'e', 'f', 'f+', 'g', 'g+', 'a', 'a+', 'b'];
+    const numberNotes = ["c", "c+", "d", "d+", "e", "f", "f+", "g", "g+", "a", "a+", "b"];
     function absoluteToNormalNote(token, currentOctave) {
-        let newTokens = [];
-        let relative = token.value % 12;
-        let noteOctave = Math.floor(token.value / 12);
+        const newTokens = [];
+        const relative = token.value % 12;
+        const noteOctave = Math.floor(token.value / 12);
         if (noteOctave !== currentOctave) {
             newTokens.push({ type: "octave", value: noteOctave });
         }
-        let note = numberNotes[relative];
-        let noteToken = {
+        const note = numberNotes[relative];
+        const noteToken = {
             type: "note",
             value: NaN,
             note: note.slice(0, 1),
-            postfix: note.endsWith('+') ? "sharp" : undefined,
+            postfix: note.endsWith("+") ? "sharp" : null,
             dot: false
         };
         newTokens.push(noteToken);
@@ -216,8 +250,8 @@ var MapleSyrup;
         return newTokens;
     }
     function writeChannel(tokens) {
-        let results = [];
-        for (let token of tokens) {
+        const results = [];
+        for (const token of tokens) {
             switch (token.type) {
                 case "tempo":
                     results.push(`t${token.value}`);
@@ -237,14 +271,14 @@ var MapleSyrup;
                 case "absolutenote":
                     throw new Error("Absolute note should be converted to normal note");
                 case "octavemanipulation":
-                    results.push(token.value ? '>' : '<');
+                    results.push(token.value ? ">" : "<");
                     break;
                 case "tie":
-                    results.push('&');
+                    results.push("&");
                     break;
                 case "note": {
                     let result = token.note;
-                    let postfix = token.postfix;
+                    const postfix = token.postfix;
                     if (postfix) {
                         if (postfix === "sharp") {
                             result += "+";
@@ -260,7 +294,7 @@ var MapleSyrup;
                         result += token.value;
                     }
                     if (token.dot) {
-                        result += '.';
+                        result += ".";
                     }
                     results.push(result);
                     break;
@@ -269,88 +303,88 @@ var MapleSyrup;
                     throw new Error(`Unexpected token: ${token.type}`);
             }
         }
-        return results.join('');
+        return results.join("");
     }
     function parseChannel(mmlChannel) {
-        let tokens = [];
-        let parser = new TextParser(mmlChannel);
+        const tokens = [];
+        const parser = new TextParser(mmlChannel);
         while (parser.remaining) {
-            let char = parser.read();
+            const char = parser.read();
             let token;
             switch (char) {
-                case 't':
+                case "t":
                     token = {
                         type: "tempo",
                         value: assertValidNumber(parser.readContinuousNumbers(3))
                     };
                     break;
-                case 'l':
+                case "l":
                     token = {
                         type: "defaultlength",
                         value: assertValidNumber(parser.readContinuousNumbers(2))
                     };
-                    token.dot = parser.readIf('.');
+                    token.dot = parser.readIf(".");
                     break;
-                    break;
-                case 'v':
+                case "v":
                     token = {
                         type: "volume",
                         value: assertValidNumber(parser.readContinuousNumbers(2))
                     };
                     break;
-                case 's':
+                case "s":
                     token = {
                         type: "sustain",
                         value: assertValidNumber(parser.readContinuousNumbers(2))
                     };
                     break;
-                case 'o':
+                case "o":
                     token = {
                         type: "octave",
                         value: assertValidNumber(parser.readContinuousNumbers(1))
                     };
                     break;
-                case 'n':
+                case "n":
                     token = {
                         type: "absolutenote",
                         value: assertValidNumber(parser.readContinuousNumbers(2))
                     };
                     break;
-                case '<':
-                case '>':
+                case "<":
+                case ">":
                     token = {
                         type: "octavemanipulation",
-                        value: char === '>' ? 1 : 0
+                        value: char === ">" ? 1 : 0
                     };
                     break;
-                case '&':
+                case "&":
                     token = {
                         type: "tie",
-                        value: undefined
+                        value: NaN
                     };
                     break;
-                case 'a':
-                case 'b':
-                case 'c':
-                case 'd':
-                case 'e':
-                case 'f':
-                case 'g':
-                case 'r':
+                case "a":
+                case "b":
+                case "c":
+                case "d":
+                case "e":
+                case "f":
+                case "g":
+                case "r": // rest note
                     token = {
                         type: "note",
-                        note: char
+                        note: char,
+                        postfix: null
                     };
-                    if (char !== 'r') {
-                        if (parser.readIf('+') || parser.readIf('#')) {
+                    if (char !== "r") {
+                        if (parser.readIf("+") || parser.readIf("#")) {
                             token.postfix = "sharp";
                         }
-                        else if (parser.readIf('-')) {
+                        else if (parser.readIf("-")) {
                             token.postfix = "flat";
                         }
                     }
                     token.value = parser.readContinuousNumbers(2);
-                    token.dot = parser.readIf('.');
+                    token.dot = parser.readIf(".");
                     break;
                 default:
                     throw new Error(`Unexpected token '${char}', position ${parser.position}.`);
@@ -367,9 +401,9 @@ var MapleSyrup;
     }
     MapleSyrup.parseChannel = parseChannel;
     class TextParser {
-        constructor(text) {
-            this._text = text;
-            this._position = 0;
+        static charIsNumber(char) {
+            const charCode = char.charCodeAt(0);
+            return charCode >= 0x30 /* 0 */ && charCode <= 0x39; /* 9 */
         }
         get position() {
             return this._position;
@@ -383,11 +417,15 @@ var MapleSyrup;
         get remaining() {
             return this._position < this._text.length;
         }
+        constructor(text) {
+            this._text = text;
+            this._position = 0;
+        }
         read() {
             if (!this.remaining) {
                 throw new Error("No more readable characters after current position.");
             }
-            let char = this._text[this._position];
+            const char = this._text[this._position];
             this.position++;
             return char;
         }
@@ -395,7 +433,7 @@ var MapleSyrup;
             if (!this.remaining) {
                 return false;
             }
-            let read = this.read();
+            const read = this.read();
             if (read !== target) {
                 this.unread();
                 return false;
@@ -409,9 +447,9 @@ var MapleSyrup;
             this.position--;
         }
         readContinuousNumbers(limit) {
-            let array = [];
+            const array = [];
             while (this.remaining && array.length < limit) {
-                let read = this.read();
+                const read = this.read();
                 if (TextParser.charIsNumber(read)) {
                     array.push(read);
                 }
@@ -420,12 +458,25 @@ var MapleSyrup;
                     break;
                 }
             }
-            return parseInt(array.join(''));
-        }
-        static charIsNumber(char) {
-            let charCode = char.charCodeAt(0);
-            return charCode >= 0x30 /* 0 */ && charCode <= 0x39; /* 9 */
+            return parseInt(array.join(""), 10);
         }
     }
+    // function indicesOf(text: string, regex: RegExp): number[] {
+    //     // TODO: use 'y' regex flag when Chrome activates it by default
+    //     // (Chrome 49 does but with an experimental flag)
+    //     const lastIndex = text.search(regex);
+    //     if (lastIndex === -1) {
+    //         return [];
+    //     }
+    //     const indices = [lastIndex];
+    //     while (true) {
+    //         const localLastIndex = text.slice(lastIndex).search(regex);
+    //         if (localLastIndex === -1) {
+    //             return indices;
+    //         }
+    //         lastIndex = localLastIndex + lastIndex + 1;
+    //         indices.push(lastIndex);
+    //     }
+    // }
 })(MapleSyrup || (MapleSyrup = {}));
 //# sourceMappingURL=maplesyrup.js.map

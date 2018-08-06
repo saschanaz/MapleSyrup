@@ -1,8 +1,0 @@
-{
-    "compilerOptions": {
-        "target": "es6",
-        "noImplicitAny": true,
-        "suppressImplicitAnyIndexErrors": true,
-        "sourceMap": true
-    }
-}
