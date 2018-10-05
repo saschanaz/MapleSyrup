@@ -20,7 +20,7 @@ function syrupifySingleLine() {
 function syrupifyMultiLine() {
     try {
     const resultTexts = MapleSyrup.convertAsArray(text.value.replace(/\s/g, ""));
-    result.textContent = resultTexts.join("\r\n\r\n");
+    result.textContent = resultTexts.join("\n\n");
     } catch (err) {
         alert(`오류가 발생했습니다: ${err}`);
     }
