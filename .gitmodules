@@ -1,6 +1,0 @@
-[submodule "gridpolyfill"]
-	path = submodules/gridpolyfill
-	url = https://github.com/FremyCompany/css-grid-polyfill/
-[submodule "submodules/dialog-polyfill"]
-	path = submodules/dialog-polyfill
-	url = https://github.com/GoogleChrome/dialog-polyfill
