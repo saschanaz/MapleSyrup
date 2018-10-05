@@ -1,0 +1,20 @@
+{
+  "name": "maplesyrup",
+  "description": "An MML processor for MapleStory 2",
+  "main": "maplesyrup.js",
+  "moduleType": [
+    "globals"
+  ],
+  "keywords": [
+    "mml",
+    "maplestory",
+    "mabinogi"
+  ],
+  "authors": [
+    "Kagami Sascha Rosylight <saschanaz@outlook.com>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "submodules"
+  ]
+}
