@@ -5,7 +5,7 @@ node_js:
 before_deploy:
   - tsc
 deploy:
-  local-dir: .
+  local-dir: ~
   provider: pages
   skip-cleanup: true
   github-token: $GITHUB_TOKEN
