@@ -6,3 +6,4 @@ interface Token {
 }
 export declare function parseChannel(mmlChannel: string): Token[];
 export {};
+export as namespace MapleSyrup;
