@@ -5,7 +5,7 @@ node_js:
 before_deploy:
   - tsc
   - mkdir out
-  - mv *css *.html *.js *.js.map *.ts out/
+  - mv *css *.html lib/ out/
 deploy:
   local-dir: out
   provider: pages
