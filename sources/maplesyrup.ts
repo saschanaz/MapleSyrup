@@ -506,21 +506,4 @@ namespace MapleSyrup {
             return parseInt(array.join(""), 10);
         }
     }
-    // function indicesOf(text: string, regex: RegExp): number[] {
-    //     // TODO: use 'y' regex flag when Chrome activates it by default
-    //     // (Chrome 49 does but with an experimental flag)
-    //     const lastIndex = text.search(regex);
-    //     if (lastIndex === -1) {
-    //         return [];
-    //     }
-    //     const indices = [lastIndex];
-    //     while (true) {
-    //         const localLastIndex = text.slice(lastIndex).search(regex);
-    //         if (localLastIndex === -1) {
-    //             return indices;
-    //         }
-    //         lastIndex = localLastIndex + lastIndex + 1;
-    //         indices.push(lastIndex);
-    //     }
-    // }
 }
