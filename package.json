@@ -1,7 +1,7 @@
 {
   "name": "mml-maplesyrup",
   "version": "1.1.0",
-  "description": "Process Mabinogi MML for MapleStory 2 ",
+  "description": "Process Mabinogi MML for MapleStory 2",
   "main": "lib/maplesyrup.js",
   "dependencies": {},
   "devDependencies": {
@@ -28,5 +28,8 @@
   "bugs": {
     "url": "https://github.com/SaschaNaz/MapleSyrup/issues"
   },
-  "homepage": "https://github.com/SaschaNaz/MapleSyrup#readme"
+  "homepage": "https://github.com/SaschaNaz/MapleSyrup#readme",
+  "files": [
+    "lib/"
+  ]
 }
