@@ -68,6 +68,18 @@ namespace MapleSyrup {
                     const tie: Token = { type: "tie", value: NaN };
                     const gapNote = createTiedNotes(noteToken, timeGap);
                     channelsAsTokens[i].splice(index, 1, ...brokenNote, tie, change[1], ...gapNote);
+                    
+                    const baseTime = timeIndexMap[index] - length;
+                    const brokenNoteTimes = mapTime(brokenNote).map(n => n + baseTime);
+                    const brokenLast = brokenNoteTimes[brokenNoteTimes.length - 1];
+                    timeIndexMap.splice(
+                        index,
+                        1,
+                        ...brokenNoteTimes,
+                        brokenLast,
+                        brokenLast,
+                        ...mapTime(gapNote).map(n => n + brokenLast)
+                    )
                 } else {
                     channelsAsTokens[i].splice(index, 0, change[1]);
                 }
