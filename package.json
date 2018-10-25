@@ -9,7 +9,8 @@
     "typescript": "^2.9.1"
   },
   "scripts": {
-    "test": "npx tslint -p ."
+    "lint": "npx tslint -p .",
+    "test": "npm run lint"
   },
   "repository": {
     "type": "git",
