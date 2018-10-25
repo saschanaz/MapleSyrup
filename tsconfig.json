@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
         "target": "es6",
+        "declaration": true,
         "sourceMap": true,
         "strict": true,
         "module": "umd",

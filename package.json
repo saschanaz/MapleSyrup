@@ -2,14 +2,16 @@
   "name": "mml-maplesyrup",
   "version": "1.1.0",
   "description": "Process Mabinogi MML for MapleStory 2 ",
-  "main": "maplesyrup.js",
+  "main": "lib/maplesyrup.js",
   "dependencies": {},
   "devDependencies": {
+    "ts-umd-global": "^1.0.0",
     "tslint": "^5.10.0",
     "typescript": "^2.9.1"
   },
   "scripts": {
     "lint": "npx tslint -p .",
+    "build": "npx tsc && npx ts-umd-global -p lib/maplesyrup -n MapleSyrup",
     "test": "npm run lint"
   },
   "repository": {
