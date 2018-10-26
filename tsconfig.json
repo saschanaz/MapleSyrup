@@ -6,5 +6,8 @@
         "strict": true,
         "module": "umd",
         "outDir": "lib/"
-    }
+    },
+    "include": [
+        "sources/"
+    ]
 }

@@ -3,7 +3,6 @@ node_js:
   - node
 
 before_deploy:
-  - npm run build
   - mkdir out
   - mv *css *.html lib/ out/
 deploy:
