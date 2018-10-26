@@ -50,7 +50,8 @@ export function convertAsArray(mml: string | string[]) {
       }
 
       // Detect unbreakable note (Issue #2)
-      if (index > 0 && change[0] > timeIndexMap[index - 1]) {
+      const previousTime = index > 0 ? timeIndexMap[index - 1] : 0;
+      if (change[0] && change[0] > previousTime) {
         const timeGap = timeIndexMap[index] - change[0];
 
         const noteToken = channelsAsTokens[i][index] as NoteToken;
@@ -130,6 +131,11 @@ function extractChannelsFromMMLContainer(mml: string) {
   return commaDelimited.split(",");
 }
 
+/**
+ * @param time value to find index
+ * @param timeMap from this map
+ * @return the first index of item whose value is larger than the input time
+ */
 function findTimeIndex(time: number, timeMap: number[]) {
   for (let i = 0; i < timeMap.length; i++) {
     const mapped = timeMap[i];
